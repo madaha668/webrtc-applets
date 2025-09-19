@@ -1,0 +1,81 @@
+sequenceDiagram
+    participant Browser as Browser
+    participant JS as JavaScript
+    participant WSS as WebSocket Server
+    participant Server as Go Server
+    participant STUN as STUN Servers
+    participant Camera as Camera
+
+    Note over Browser, Server: Phase 1: HTTPS Setup
+    
+    Browser->>Server: GET https://localhost:8080
+    Server-->>Browser: HTML + Certificate Warning
+    Browser->>Browser: User accepts certificate
+    
+    Note over Browser, Server: Phase 2: Media Access
+    
+    Browser->>JS: Click Start Connection
+    JS->>Camera: getUserMedia()
+    Camera-->>JS: MediaStream
+    JS->>JS: Display local video
+    
+    Note over Browser, Server: Phase 3: WebSocket Connection
+    
+    JS->>WSS: new WebSocket(wss://)
+    WSS-->>JS: Connection established
+    
+    Note over Browser, Server: Phase 4: WebRTC Setup
+    
+    JS->>JS: Create RTCPeerConnection
+    JS->>JS: Add media tracks
+    JS->>JS: Create DataChannel BEFORE offer
+    JS->>JS: Setup event handlers
+    
+    Note over Browser, Server: Phase 5: SDP Exchange
+    
+    JS->>JS: createOffer() with DataChannel
+    JS->>JS: setLocalDescription(offer)
+    JS->>WSS: Send SDP offer
+    WSS->>Server: Forward offer
+    
+    Server->>Server: setRemoteDescription(offer)
+    Server->>Server: OnDataChannel() received
+    Server->>Server: createAnswer()
+    Server->>WSS: Send SDP answer
+    WSS->>JS: Forward answer
+    JS->>JS: setRemoteDescription(answer)
+    
+    Note over Browser, Server: Phase 6: ICE Exchange
+    
+    loop ICE Discovery
+        JS->>STUN: STUN requests
+        STUN-->>JS: STUN responses
+        JS->>WSS: Send ICE candidate
+        WSS->>Server: Forward candidate
+        Server->>WSS: Send ICE candidate
+        WSS->>JS: Forward candidate
+    end
+    
+    Note over Browser, Server: Phase 7: Connection Ready
+    
+    JS->>JS: ICE connected
+    JS->>JS: DataChannel opens
+    JS->>JS: Status: Ready for API calls
+    
+    Server->>JS: Welcome message via DataChannel
+    JS->>JS: ArrayBuffer to String to JSON
+    
+    Note over Browser, Server: Phase 8: Media Echo
+    
+    JS->>Server: RTP video/audio packets
+    Server->>Server: Echo media processing
+    Server->>JS: Echo RTP packets back
+    JS->>JS: Display remote video
+    
+    Note over Browser, Server: Phase 9: REST API Usage
+    
+    Browser->>JS: Click API button
+    JS->>Server: JSON request via DataChannel
+    Server->>Server: Process REST API
+    Server->>JS: JSON response via DataChannel
+    JS->>JS: Display API response

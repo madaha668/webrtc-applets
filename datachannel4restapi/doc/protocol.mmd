@@ -1,0 +1,73 @@
+graph TD
+    subgraph Client["Browser Client"]
+        UI["Web UI"]
+        LocalCam["Local Camera"]
+        RemoteDisplay["Remote Display"]
+        DataChannel_C["DataChannel Client"]
+        PeerConn_C["RTCPeerConnection Client"]
+        ICE_C["ICE Agent Client"]
+    end
+
+    subgraph Network["Network Protocols"]
+        HTTPS_Proto["HTTPS/TLS"]
+        WSS_Proto["WebSocket Secure"]
+        SRTP_Proto["SRTP Media"]
+        SCTP_Proto["SCTP Data"]
+        STUN_Proto["STUN/ICE"]
+    end
+
+    subgraph Server["Go Server"]
+        TLS_Server["TLS Certificate"]
+        WS_Server["WebSocket Handler"]
+        PeerConn_S["PeerConnection Server"]
+        DataChannel_S["DataChannel Server"]
+        MediaEngine["Media Engine"]
+        ICE_S["ICE Agent Server"]
+        RestHandler["REST API Handler"]
+        EchoProcessor["Media Echo"]
+    end
+
+    %% Signaling Flow
+    UI --> HTTPS_Proto
+    HTTPS_Proto --> WS_Server
+    UI --> WSS_Proto
+    WSS_Proto --> WS_Server
+    WS_Server --> PeerConn_S
+
+    %% Media Flow
+    LocalCam --> PeerConn_C
+    PeerConn_C --> SRTP_Proto
+    SRTP_Proto --> PeerConn_S
+    PeerConn_S --> EchoProcessor
+    EchoProcessor --> PeerConn_S
+    PeerConn_S --> SRTP_Proto
+    SRTP_Proto --> PeerConn_C
+    PeerConn_C --> RemoteDisplay
+
+    %% Data Channel Flow
+    UI --> DataChannel_C
+    DataChannel_C --> SCTP_Proto
+    SCTP_Proto --> DataChannel_S
+    DataChannel_S --> RestHandler
+    RestHandler --> DataChannel_S
+    DataChannel_S --> SCTP_Proto
+    SCTP_Proto --> DataChannel_C
+    DataChannel_C --> UI
+
+    %% NAT Traversal
+    ICE_C --> STUN_Proto
+    ICE_S --> STUN_Proto
+    STUN_Proto --> ICE_C
+    STUN_Proto --> ICE_S
+
+    %% Security
+    TLS_Server --> HTTPS_Proto
+    TLS_Server --> WSS_Proto
+
+    classDef client fill:#e3f2fd
+    classDef server fill:#f3e5f5
+    classDef network fill:#fff3e0
+    
+    class UI,LocalCam,RemoteDisplay,DataChannel_C,PeerConn_C,ICE_C client
+    class TLS_Server,WS_Server,PeerConn_S,DataChannel_S,MediaEngine,ICE_S,RestHandler,EchoProcessor server
+    class HTTPS_Proto,WSS_Proto,SRTP_Proto,SCTP_Proto,STUN_Proto network

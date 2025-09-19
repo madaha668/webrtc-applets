@@ -1,0 +1,70 @@
+graph TB
+    subgraph Network["🌐 Network Infrastructure"]
+        STUN1["STUN Server<br/>Google"]
+        STUN2["STUN Server<br/>Cloudflare"]
+    end
+
+    subgraph Client["💻 Browser Client"]
+        HTML["HTML Interface"]
+        JS["JavaScript WebRTC"]
+        Camera["📹 Camera/Mic"]
+        LocalVideo["🎥 Local Display"]
+        RemoteVideo["🎥 Remote Display"]
+        PC_Client["RTCPeerConnection"]
+        DC_Client["DataChannel"]
+    end
+
+    subgraph Server["🖥️ Go Server (Pion)"]
+        HTTPS["HTTPS Server :8080"]
+        WSS["WebSocket Handler"]
+        PC_Server["PeerConnection"]
+        DC_Server["DataChannel Handler"]
+        VideoTrack["Video Track"]
+        AudioTrack["Audio Track"]
+        RestAPI["REST API Handler"]
+        EchoEngine["Media Echo"]
+    end
+
+    subgraph Security["🔐 Security"]
+        TLS["TLS Certificate"]
+        CertGen["Auto-Generated"]
+    end
+
+    %% Connections
+    HTML --> JS
+    JS --> Camera
+    Camera --> LocalVideo
+    JS --> PC_Client
+    PC_Client --> DC_Client
+
+    HTTPS --> WSS
+    WSS --> PC_Server
+    PC_Server --> DC_Server
+    PC_Server --> VideoTrack
+    PC_Server --> AudioTrack
+    DC_Server --> RestAPI
+    PC_Server --> EchoEngine
+
+    CertGen --> TLS
+    TLS --> HTTPS
+
+    PC_Client -.-> STUN1
+    PC_Client -.-> STUN2
+    PC_Server -.-> STUN1
+
+    JS ==> HTTPS
+    JS ==> WSS
+    PC_Client ==> PC_Server
+    PC_Server ==> RemoteVideo
+    DC_Client ==> DC_Server
+    DC_Server ==> DC_Client
+
+    classDef client fill:#e1f5fe
+    classDef server fill:#f3e5f5
+    classDef network fill:#fff3e0
+    classDef security fill:#ffebee
+    
+    class HTML,JS,Camera,LocalVideo,RemoteVideo,PC_Client,DC_Client client
+    class HTTPS,WSS,PC_Server,DC_Server,VideoTrack,AudioTrack,RestAPI,EchoEngine server
+    class STUN1,STUN2 network
+    class TLS,CertGen security
